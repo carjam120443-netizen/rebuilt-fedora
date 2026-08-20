@@ -15,6 +15,8 @@ clearpart --all --initlabel
 
 %packages
 @^workstation-product-environment
+# Required by livemedia-creator for a live image
+ dracut-live
 lorax-templates-anaconda
 anaconda-dracut
 livecd-tools
