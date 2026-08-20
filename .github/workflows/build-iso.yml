@@ -1,9 +1,9 @@
 name: Build Rebuilt Fedora ISO
 
 on:
-  workflow_dispatch:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -41,6 +41,7 @@ jobs:
             firefox \
             sudo
 
+          sudo mkdir -p "$GITHUB_WORKSPACE/output"
           sudo livemedia-creator \
             --make-iso \
             --no-virt \
