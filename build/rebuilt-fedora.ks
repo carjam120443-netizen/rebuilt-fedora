@@ -11,6 +11,7 @@ firewall --disabled
 bootloader --location=none
 zerombr
 clearpart --all --initlabel
+part / --size=12000 --fstype=ext4
 
 %packages
 @^workstation-product-environment
