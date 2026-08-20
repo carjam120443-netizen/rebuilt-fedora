@@ -3,7 +3,8 @@ text
 lang en_US.UTF-8
 keyboard us
 timezone UTC --utc
-rootpw --lock disabled
+url --url=https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/
+rootpw --lock
 user --name=live --groups=wheel --password=live --plaintext
 network --bootproto=dhcp --device=link --activate
 selinux --disabled
@@ -14,6 +15,9 @@ clearpart --all --initlabel
 
 %packages
 @^workstation-product-environment
+lorax-templates-anaconda
+anaconda-dracut
+livecd-tools
 gnome-shell
 gnome-session
 gnome-terminal
@@ -23,7 +27,6 @@ sudo
 xorg-x11-server-Xorg
 kernel
 
-# Rebuilt Fedora identity
 %end
 
 %post
