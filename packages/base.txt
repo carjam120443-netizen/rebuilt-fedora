@@ -1,0 +1,18 @@
+@core
+bash
+coreutils
+systemd
+util-linux
+sudo
+NetworkManager
+openssh-clients
+vim-minimal
+nano
+curl
+wget
+
+# Desktop
+@workstation-product-environment
+gnome-shell
+gnome-session
+nautilus
