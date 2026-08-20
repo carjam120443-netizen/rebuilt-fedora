@@ -11,57 +11,60 @@ permissions:
 jobs:
   build-iso:
     runs-on: ubuntu-latest
-    container:
-      image: fedora:44
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Fedora ISO build tools
+      - name: Build Rebuilt Fedora ISO in privileged Fedora container
         run: |
-          dnf -y update
-          dnf -y install \
-            lorax \
-            lorax-lmc-novirt \
-            anaconda \
-            anaconda-dracut \
-            xorriso \
-            squashfs-tools \
-            curl
+          docker pull fedora:44
+          docker run --rm --privileged \
+            -v "$GITHUB_WORKSPACE:/workspace" \
+            -v "$RUNNER_TEMP:/runner-temp" \
+            -w /workspace \
+            fedora:44 \
+            bash -euxo pipefail -c '
+              dnf -y update
+              dnf -y install \
+                lorax \
+                lorax-lmc-novirt \
+                anaconda \
+                anaconda-dracut \
+                xorriso \
+                squashfs-tools \
+                curl
 
-      - name: Download Fedora 44 Anaconda boot media
-        run: |
-          curl -fL \
-            -o "$GITHUB_WORKSPACE/fedora-boot.iso" \
-            https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Server/x86_64/os/images/boot.iso
-          test -s "$GITHUB_WORKSPACE/fedora-boot.iso"
-          ls -lh "$GITHUB_WORKSPACE/fedora-boot.iso"
+              curl -fL \
+                -o /workspace/fedora-boot.iso \
+                https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Server/x86_64/os/images/boot.iso
 
-      - name: Prepare build directories
-        run: |
-          rm -rf "$RUNNER_TEMP/rebuilt-fedora-lmc"
+              test -s /workspace/fedora-boot.iso
 
-      - name: Build Rebuilt Fedora ISO
-        run: |
-          livemedia-creator \
-            --make-iso \
-            --no-virt \
-            --ks="$GITHUB_WORKSPACE/build/rebuilt-fedora.ks" \
-            --iso="$GITHUB_WORKSPACE/fedora-boot.iso" \
-            --project='Rebuilt Fedora' \
-            --releasever=44 \
-            --resultdir="$RUNNER_TEMP/rebuilt-fedora-lmc" \
-            --volid='REBUILT_FEDORA' \
-            --iso-only \
-            --iso-name='rebuilt-fedora.iso'
+              rm -rf /runner-temp/rebuilt-fedora-lmc
 
-      - name: Find and prepare ISO
+              livemedia-creator \
+                --make-iso \
+                --no-virt \
+                --ks=/workspace/build/rebuilt-fedora.ks \
+                --iso=/workspace/fedora-boot.iso \
+                --project="Rebuilt Fedora" \
+                --releasever=44 \
+                --resultdir=/runner-temp/rebuilt-fedora-lmc \
+                --volid=REBUILT_FEDORA \
+                --iso-only \
+                --iso-name=rebuilt-fedora.iso
+
+              ISO=$(find /runner-temp/rebuilt-fedora-lmc -type f -name "*.iso" | head -n 1)
+              test -n "$ISO"
+              cp "$ISO" /workspace/rebuilt-fedora.iso
+              ls -lh /workspace/rebuilt-fedora.iso
+            '
+
+      - name: Verify ISO
         run: |
-          ISO=$(find "$RUNNER_TEMP/rebuilt-fedora-lmc" -type f -name '*.iso' | head -n 1)
-          test -n "$ISO"
-          cp "$ISO" "$GITHUB_WORKSPACE/rebuilt-fedora.iso"
-          ls -lh "$GITHUB_WORKSPACE/rebuilt-fedora.iso"
+          test -s rebuilt-fedora.iso
+          ls -lh rebuilt-fedora.iso
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
