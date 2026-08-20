@@ -20,65 +20,38 @@ jobs:
 
       - name: Install Fedora ISO build tools
         run: |
-          dnf -y upgrade
+          dnf -y update
           dnf -y install \
             lorax \
             lorax-lmc-novirt \
             xorriso \
             squashfs-tools \
-            dnf-utils \
-            git
+            dnf5
 
-      - name: Create Kickstart
+      - name: Prepare build directories
         run: |
-          cat > rebuilt-fedora.ks <<'EOF'
-          lang en_US.UTF-8
-          keyboard us
-          timezone UTC --utc
-          rootpw --lock
-          user --name=rebuilt --groups=wheel --password=rebuilt
-          firewall --enabled
-          selinux --enforcing
-          services --enabled=NetworkManager,sshd
-          bootloader --timeout=1
-          reboot
-
-          %packages
-          @^workstation-product-environment
-          gnome-shell
-          gnome-terminal
-          firefox
-          NetworkManager
-          sudo
-          %end
-
-          %post
-          sed -i 's/^NAME=.*/NAME="Rebuilt Fedora"/' /etc/os-release
-          sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="Rebuilt Fedora 44"/' /etc/os-release
-          echo 'Welcome to Rebuilt Fedora!' > /etc/motd
-          %end
-          EOF
+          rm -rf "$GITHUB_WORKSPACE/output"
+          mkdir -p "$GITHUB_WORKSPACE/output"
 
       - name: Build Rebuilt Fedora ISO
         run: |
-          mkdir -p output
           livemedia-creator \
             --make-iso \
             --no-virt \
-            --ks="$GITHUB_WORKSPACE/rebuilt-fedora.ks" \
             --project='Rebuilt Fedora' \
             --releasever=44 \
             --resultdir="$GITHUB_WORKSPACE/output" \
             --volid='REBUILT_FEDORA' \
-            --iso="$GITHUB_WORKSPACE/output/rebuilt-fedora.iso"
+            --iso="$GITHUB_WORKSPACE/rebuilt-fedora.iso"
 
-      - name: List build output
-        if: always()
-        run: ls -lah output || true
+      - name: Verify ISO
+        run: |
+          test -f "$GITHUB_WORKSPACE/rebuilt-fedora.iso"
+          ls -lh "$GITHUB_WORKSPACE/rebuilt-fedora.iso"
 
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:
           name: rebuilt-fedora-iso
-          path: output/*.iso
+          path: rebuilt-fedora.iso
           if-no-files-found: error
