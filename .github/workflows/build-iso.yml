@@ -1,0 +1,62 @@
+name: Build Rebuilt Fedora ISO
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-iso:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ISO build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            lorax \
+            xorriso \
+            squashfs-tools \
+            dnf
+
+      - name: Build Rebuilt Fedora ISO
+        run: |
+          sudo mkdir -p /var/lib/mock
+          sudo dnf -y install \
+            fedora-release \
+            dnf \
+            systemd \
+            kernel \
+            grub2-efi-x64 \
+            shim-x64 \
+            NetworkManager \
+            gnome-shell \
+            gnome-session \
+            gnome-terminal \
+            firefox \
+            sudo
+
+          sudo livemedia-creator \
+            --make-iso \
+            --no-virt \
+            --project='Rebuilt Fedora' \
+            --releasever=42 \
+            --resultdir="$GITHUB_WORKSPACE/output" \
+            --volid='REBUILT_FEDORA' \
+            --iso="$GITHUB_WORKSPACE/output/rebuilt-fedora.iso"
+
+      - name: List build output
+        if: always()
+        run: ls -lah output || true
+
+      - name: Upload ISO artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rebuilt-fedora-iso
+          path: output/*.iso
+          if-no-files-found: error
