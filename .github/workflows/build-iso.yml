@@ -30,17 +30,18 @@ jobs:
 
       - name: Prepare build directories
         run: |
-          rm -rf "$GITHUB_WORKSPACE/output"
-          mkdir -p "$GITHUB_WORKSPACE/output"
+          rm -rf "$RUNNER_TEMP/rebuilt-fedora-lmc"
+          mkdir -p "$RUNNER_TEMP"
 
       - name: Build Rebuilt Fedora ISO
         run: |
           livemedia-creator \
             --make-iso \
             --no-virt \
+            --ks="$GITHUB_WORKSPACE/build/rebuilt-fedora.ks" \
             --project='Rebuilt Fedora' \
             --releasever=44 \
-            --resultdir="$GITHUB_WORKSPACE/output" \
+            --resultdir="$RUNNER_TEMP/rebuilt-fedora-lmc" \
             --volid='REBUILT_FEDORA' \
             --iso="$GITHUB_WORKSPACE/rebuilt-fedora.iso"
 
