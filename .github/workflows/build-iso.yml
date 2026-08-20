@@ -11,42 +11,63 @@ permissions:
 jobs:
   build-iso:
     runs-on: ubuntu-latest
+    container:
+      image: fedora:44
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install ISO build tools
+      - name: Install Fedora ISO build tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          dnf -y upgrade
+          dnf -y install \
             lorax \
+            lorax-lmc-novirt \
             xorriso \
             squashfs-tools \
-            dnf
+            dnf-utils \
+            git
+
+      - name: Create Kickstart
+        run: |
+          cat > rebuilt-fedora.ks <<'EOF'
+          lang en_US.UTF-8
+          keyboard us
+          timezone UTC --utc
+          rootpw --lock
+          user --name=rebuilt --groups=wheel --password=rebuilt
+          firewall --enabled
+          selinux --enforcing
+          services --enabled=NetworkManager,sshd
+          bootloader --timeout=1
+          reboot
+
+          %packages
+          @^workstation-product-environment
+          gnome-shell
+          gnome-terminal
+          firefox
+          NetworkManager
+          sudo
+          %end
+
+          %post
+          sed -i 's/^NAME=.*/NAME="Rebuilt Fedora"/' /etc/os-release
+          sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="Rebuilt Fedora 44"/' /etc/os-release
+          echo 'Welcome to Rebuilt Fedora!' > /etc/motd
+          %end
+          EOF
 
       - name: Build Rebuilt Fedora ISO
         run: |
-          sudo mkdir -p /var/lib/mock
-          sudo dnf -y install \
-            fedora-release \
-            dnf \
-            systemd \
-            kernel \
-            grub2-efi-x64 \
-            shim-x64 \
-            NetworkManager \
-            gnome-shell \
-            gnome-session \
-            gnome-terminal \
-            firefox \
-            sudo
-
-          sudo mkdir -p "$GITHUB_WORKSPACE/output"
-          sudo livemedia-creator \
+          mkdir -p output
+          livemedia-creator \
             --make-iso \
             --no-virt \
+            --ks="$GITHUB_WORKSPACE/rebuilt-fedora.ks" \
             --project='Rebuilt Fedora' \
-            --releasever=42 \
+            --releasever=44 \
             --resultdir="$GITHUB_WORKSPACE/output" \
             --volid='REBUILT_FEDORA' \
             --iso="$GITHUB_WORKSPACE/output/rebuilt-fedora.iso"
