@@ -1,5 +1,4 @@
 # Rebuilt Fedora live image kickstart
-text
 lang en_US.UTF-8
 keyboard us
 timezone UTC --utc
@@ -15,8 +14,7 @@ clearpart --all --initlabel
 
 %packages
 @^workstation-product-environment
-# Required by livemedia-creator for a live image
- dracut-live
+dracut-live
 lorax-templates-anaconda
 anaconda-dracut
 livecd-tools
