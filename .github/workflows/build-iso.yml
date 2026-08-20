@@ -24,14 +24,23 @@ jobs:
           dnf -y install \
             lorax \
             lorax-lmc-novirt \
+            anaconda \
+            anaconda-dracut \
             xorriso \
             squashfs-tools \
-            dnf5
+            curl
+
+      - name: Download Fedora 44 Anaconda boot media
+        run: |
+          curl -fL \
+            -o "$GITHUB_WORKSPACE/fedora-boot.iso" \
+            https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Server/x86_64/os/images/boot.iso
+          test -s "$GITHUB_WORKSPACE/fedora-boot.iso"
+          ls -lh "$GITHUB_WORKSPACE/fedora-boot.iso"
 
       - name: Prepare build directories
         run: |
           rm -rf "$RUNNER_TEMP/rebuilt-fedora-lmc"
-          mkdir -p "$RUNNER_TEMP"
 
       - name: Build Rebuilt Fedora ISO
         run: |
@@ -39,15 +48,19 @@ jobs:
             --make-iso \
             --no-virt \
             --ks="$GITHUB_WORKSPACE/build/rebuilt-fedora.ks" \
+            --iso="$GITHUB_WORKSPACE/fedora-boot.iso" \
             --project='Rebuilt Fedora' \
             --releasever=44 \
             --resultdir="$RUNNER_TEMP/rebuilt-fedora-lmc" \
             --volid='REBUILT_FEDORA' \
-            --iso="$GITHUB_WORKSPACE/rebuilt-fedora.iso"
+            --iso-only \
+            --iso-name='rebuilt-fedora.iso'
 
-      - name: Verify ISO
+      - name: Find and prepare ISO
         run: |
-          test -f "$GITHUB_WORKSPACE/rebuilt-fedora.iso"
+          ISO=$(find "$RUNNER_TEMP/rebuilt-fedora-lmc" -type f -name '*.iso' | head -n 1)
+          test -n "$ISO"
+          cp "$ISO" "$GITHUB_WORKSPACE/rebuilt-fedora.iso"
           ls -lh "$GITHUB_WORKSPACE/rebuilt-fedora.iso"
 
       - name: Upload ISO artifact
